@@ -2,6 +2,10 @@ import numpy as np
 import cv2 as cv
 import mediapipe as mp
 
+#Valor de ajuste para visão
+blinkAdjust = 0.15
+flip_enabled = True
+
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5)
@@ -21,6 +25,48 @@ def calculate_ear(eye_landmarks):
     ear = (vertical_1 + vertical_2) / (2.0 * horizontal)
     return ear
 
+# Função para desenhar um teclado retangular com uma linha dividindo as teclas
+def draw_keyboard(frame):
+    # Adicionar um espaço extra para o teclado abaixo da imagem da webcam
+    height, width, _ = frame.shape
+    keyboard_height = 200  # Definir uma altura maior para o teclado completo
+    extended_frame = np.zeros((height + keyboard_height, width, 3), dtype=np.uint8)
+    extended_frame[:height, :width] = frame
+
+    # Definir todas as teclas em uma única lista
+    keys = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 
+            'Z', 'X', 'C', 'V', 'B', 'N', 'M']
+
+    # Dividir as teclas em duas partes
+    half = len(keys) // 2
+    left_keys = keys[:half]
+    right_keys = keys[half:]
+
+    # Definir tamanho das teclas e posição da linha divisória
+    key_width = width // 10
+    key_height = 50
+    middle_line_x = width // 2
+
+    # Desenhar as teclas na parte esquerda
+    for i, key in enumerate(left_keys):
+        x = (i % 5) * key_width  # 5 teclas por linha
+        y = height + (i // 5) * key_height  # Nova linha a cada 5 teclas
+        cv.rectangle(extended_frame, (x, y), (x + key_width, y + key_height), (255, 255, 255), -1)
+        cv.putText(extended_frame, key, (x + 10, y + 35), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
+    # Desenhar as teclas na parte direita
+    for i, key in enumerate(right_keys):
+        x = middle_line_x + (i % 5) * key_width  # 5 teclas por linha, depois da linha divisória
+        y = height + (i // 5) * key_height
+        cv.rectangle(extended_frame, (x, y), (x + key_width, y + key_height), (255, 255, 255), -1)
+        cv.putText(extended_frame, key, (x + 10, y + 35), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
+    # Desenhar a linha divisória no meio
+    cv.line(extended_frame, (middle_line_x, height), (middle_line_x, height + keyboard_height), (255, 0, 0), 2)
+
+    return extended_frame
+
 # Start video capture
 cap = cv.VideoCapture(0)
 if not cap.isOpened():
@@ -28,7 +74,7 @@ if not cap.isOpened():
     exit()
 
 # Threshold for blinking detection (adjust as necessary)
-BLINK_THRESHOLD = 0.20
+BLINK_THRESHOLD = blinkAdjust
 
 while True:
     # Capture frame-by-frame
@@ -37,6 +83,9 @@ while True:
     if not ret:
         print("Can't receive frame (stream end?). Exiting ...")
         break
+    
+    if flip_enabled:
+        frame = cv.flip(frame, 1)
 
     # Convert the frame to RGB (required for MediaPipe)
     rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
@@ -67,11 +116,17 @@ while True:
             if right_ear < BLINK_THRESHOLD:
                 cv.putText(frame, 'Right Eye Blinked', (30, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
+    # Adicionar o teclado abaixo da janela da webcam
+    frame_with_keyboard = draw_keyboard(frame)
+
     # Display the resulting frame
-    cv.imshow('MediaPipe Face Mesh - Eye Blink Detection', frame)
+    cv.imshow('MediaPipe Face Mesh - Eye Blink Detection', frame_with_keyboard)
 
     # Break the loop if 'q' is pressed
-    if cv.waitKey(1) == ord('q'):
+    key = cv.waitKey(1)
+    if key == ord('f'):
+        flip_enabled = not flip_enabled  # Alterna a inversão
+    elif key == ord('q'):
         break
  
 # Release the capture and destroy all windows
