@@ -2,9 +2,12 @@ import numpy as np
 import cv2 as cv
 import mediapipe as mp
 
-#Valor de ajuste para visão
+# Valor de ajuste para visão
 blinkAdjust = 0.15
 flip_enabled = True
+
+# Contar uma piscada por vez
+is_blinking = False
 
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
@@ -33,19 +36,17 @@ current_keys = (left_keys, right_keys)  # Teclas atuais em exibição
 
 shrink_left = False
 shrink_right = False
-phase = 1  # Fase do processo de divisão do teclado
 
-# Variáveis para rastrear o estado da piscada
-left_eye_blink = False
-right_eye_blink = False
-left_eye_previous_state = False
-right_eye_previous_state = False
+# Variáveis para rastrear o estado dos olhos
+left_eye_closed = False
+right_eye_closed = False
 
-# Função para desenhar o teclado atualizado
+# Função para desenhar o teclado atualizado e a caixa lateral
 def draw_keyboard(frame, left_keys, right_keys, selected_letters):
     height, width, _ = frame.shape
     keyboard_height = 200
-    extended_frame = np.zeros((height + keyboard_height + 50, width, 3), dtype=np.uint8)
+    sidebar_width = 300  # Largura da caixa lateral
+    extended_frame = np.zeros((height + keyboard_height + 50, width + sidebar_width, 3), dtype=np.uint8)
     extended_frame[:height, :width] = frame
     key_width = width // 10
     key_height = 50
@@ -67,9 +68,15 @@ def draw_keyboard(frame, left_keys, right_keys, selected_letters):
             cv.rectangle(extended_frame, (x, y), (x + key_width, y + key_height), (255, 255, 255), -1)
             cv.putText(extended_frame, key, (x + 10, y + 35), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
-    # Exibir as letras selecionadas abaixo do teclado
-    cv.putText(extended_frame, "Selected Letters: " + ''.join(selected_letters), (30, height + keyboard_height + 30), 
-               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    # Desenhar a caixa lateral para exibir as letras selecionadas
+    sidebar_start_x = width  # Início da caixa lateral
+    cv.rectangle(extended_frame, (sidebar_start_x, 0), (sidebar_start_x + sidebar_width, height), (50, 50, 50), -1)
+    cv.putText(extended_frame, "Selected Letters:", (sidebar_start_x + 10, 40), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+    # Exibir as letras selecionadas dentro da caixa lateral
+    for i, letter in enumerate(selected_letters):
+        y_position = 80 + i * 40  # Espaçamento entre as letras
+        cv.putText(extended_frame, letter, (sidebar_start_x + 10, y_position), cv.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 2)
 
     return extended_frame
 
@@ -107,14 +114,32 @@ while True:
             right_ear = calculate_ear(right_eye_landmarks)
 
             # Detectar piscada do olho esquerdo
-            if left_ear < BLINK_THRESHOLD and current_keys[1]:  # Se ainda há teclas à direita
-                current_keys = (current_keys[0], [])  # Apaga as teclas do lado direito
-                shrink_right = True
+            if left_ear < BLINK_THRESHOLD and not left_eye_closed:
+                if current_keys[1]:  # Se ainda há teclas à direita
+                    current_keys = (current_keys[0], [])  # Apaga as teclas do lado direito
+                    shrink_right = True
+                left_eye_closed = True  # Marca que o olho está fechado
 
             # Detectar piscada do olho direito
-            elif right_ear < BLINK_THRESHOLD and current_keys[0]:  # Se ainda há teclas à esquerda
-                current_keys = ([], current_keys[1])  # Apaga as teclas do lado esquerdo
-                shrink_left = True
+            elif right_ear < BLINK_THRESHOLD and not right_eye_closed:
+                if current_keys[0]:  # Se ainda há teclas à esquerda
+                    current_keys = ([], current_keys[1])  # Apaga as teclas do lado esquerdo
+                    shrink_left = True
+                right_eye_closed = True  # Marca que o olho está fechado
+
+            # Verificar se ambos os olhos estão piscando para adicionar um espaço
+            if left_ear < BLINK_THRESHOLD and right_ear < BLINK_THRESHOLD:
+                selected_letters.append(' ')  # Adiciona um espaço
+                left_eye_closed = True
+                right_eye_closed = True
+
+            # Verificar se o olho esquerdo foi aberto novamente
+            if left_ear >= BLINK_THRESHOLD:
+                left_eye_closed = False  # Marca que o olho foi aberto
+
+            # Verificar se o olho direito foi aberto novamente
+            if right_ear >= BLINK_THRESHOLD:
+                right_eye_closed = False  # Marca que o olho foi aberto
 
     # Após a remoção das teclas de um lado, dividir as teclas restantes
     if shrink_right and current_keys[0]:  # Se o lado direito foi removido
@@ -133,17 +158,16 @@ while True:
         selected_letters.append(current_keys[1].pop())
         current_keys = (left_keys, right_keys)  # Reinicia o teclado
 
-    # Desenhar o teclado e exibir
+    # Desenhar o teclado e exibir com a caixa lateral
     frame_with_keyboard = draw_keyboard(frame, current_keys[0], current_keys[1], selected_letters)
     cv.imshow('MediaPipe Face Mesh - Eye Blink Detection with Keyboard', frame_with_keyboard)
 
     # Controles de teclado
     key = cv.waitKey(1)
-    if key == ord('f'):
-        flip_enabled = not flip_enabled
-    elif key == ord('q'):
+    if key == ord('q'):
         break
+    elif key == ord('f'):
+        flip_enabled = not flip_enabled
 
-# Limpar e fechar janelas
 cap.release()
 cv.destroyAllWindows()
