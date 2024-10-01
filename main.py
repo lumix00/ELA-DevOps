@@ -1,9 +1,10 @@
 import numpy as np
 import cv2 as cv
 import mediapipe as mp
+import tkinter as tk
 
 # Valor de ajuste para visão
-blinkAdjust = 0.10
+blinkAdjust = 0.15
 flip_enabled = True
 
 # Contar uma piscada por vez
