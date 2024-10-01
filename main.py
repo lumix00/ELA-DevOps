@@ -41,12 +41,11 @@ shrink_right = False
 left_eye_closed = False
 right_eye_closed = False
 
-# Função para desenhar o teclado atualizado e a caixa lateral
+# Função para desenhar o teclado atualizado
 def draw_keyboard(frame, left_keys, right_keys, selected_letters):
     height, width, _ = frame.shape
     keyboard_height = 200
-    sidebar_width = 300  # Largura da caixa lateral
-    extended_frame = np.zeros((height + keyboard_height + 50, width + sidebar_width, 3), dtype=np.uint8)
+    extended_frame = np.zeros((height + keyboard_height + 50, width, 3), dtype=np.uint8)
     extended_frame[:height, :width] = frame
     key_width = width // 10
     key_height = 50
@@ -68,15 +67,9 @@ def draw_keyboard(frame, left_keys, right_keys, selected_letters):
             cv.rectangle(extended_frame, (x, y), (x + key_width, y + key_height), (255, 255, 255), -1)
             cv.putText(extended_frame, key, (x + 10, y + 35), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
-    # Desenhar a caixa lateral para exibir as letras selecionadas
-    sidebar_start_x = width  # Início da caixa lateral
-    cv.rectangle(extended_frame, (sidebar_start_x, 0), (sidebar_start_x + sidebar_width, height), (50, 50, 50), -1)
-    cv.putText(extended_frame, "Selected Letters:", (sidebar_start_x + 10, 40), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-
-    # Exibir as letras selecionadas dentro da caixa lateral
-    for i, letter in enumerate(selected_letters):
-        y_position = 80 + i * 40  # Espaçamento entre as letras
-        cv.putText(extended_frame, letter, (sidebar_start_x + 10, y_position), cv.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 2)
+    # Exibir as letras selecionadas abaixo do teclado
+    cv.putText(extended_frame, "Selected Letters: " + ''.join(selected_letters), (30, height + keyboard_height + 30), 
+               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     return extended_frame
 
@@ -158,16 +151,17 @@ while True:
         selected_letters.append(current_keys[1].pop())
         current_keys = (left_keys, right_keys)  # Reinicia o teclado
 
-    # Desenhar o teclado e exibir com a caixa lateral
+    # Desenhar o teclado e exibir
     frame_with_keyboard = draw_keyboard(frame, current_keys[0], current_keys[1], selected_letters)
     cv.imshow('MediaPipe Face Mesh - Eye Blink Detection with Keyboard', frame_with_keyboard)
 
     # Controles de teclado
     key = cv.waitKey(1)
-    if key == ord('q'):
-        break
-    elif key == ord('f'):
+    if key == ord('f'):
         flip_enabled = not flip_enabled
+    elif key == ord('q'):
+        break
 
+# Limpar e fechar janelas
 cap.release()
 cv.destroyAllWindows()
