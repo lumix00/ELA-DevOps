@@ -3,7 +3,7 @@ import cv2 as cv
 import mediapipe as mp
 
 # Valor de ajuste para visão
-blinkAdjust = 0.15
+blinkAdjust = 0.10
 flip_enabled = True
 
 # Contar uma piscada por vez
@@ -122,7 +122,8 @@ while True:
 
             # Verificar se ambos os olhos estão piscando para adicionar um espaço
             if left_ear < BLINK_THRESHOLD and right_ear < BLINK_THRESHOLD:
-                selected_letters.append(' ')  # Adiciona um espaço
+                if len(selected_letters) == 0 or selected_letters[-1] != ' ':  # Evitar espaços consecutivos
+                    selected_letters.append(' ')  # Adiciona um espaço
                 left_eye_closed = True
                 right_eye_closed = True
 
