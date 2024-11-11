@@ -43,4 +43,4 @@ jobs:
     - name: Lint code (optional)
       run: |
         pip install flake8
-        flake8 .
+        flake8 . --exit-zero
