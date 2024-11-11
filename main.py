@@ -11,7 +11,11 @@ is_blinking = False
 
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+face_mesh = mp_face_mesh.FaceMesh(
+    max_num_faces=1, 
+    refine_landmarks=True, 
+    min_detection_confidence=0.5, 
+    min_tracking_confidence=0.5)
 
 # Drawing utilities
 mp_drawing = mp.solutions.drawing_utils
@@ -20,11 +24,15 @@ mp_drawing = mp.solutions.drawing_utils
 LEFT_EYE = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [263, 387, 385, 362, 380, 373]
 
+
 # Function to calculate the eye aspect ratio (EAR)
 def calculate_ear(eye_landmarks):
-    vertical_1 = np.linalg.norm(np.array(eye_landmarks[1]) - np.array(eye_landmarks[5]))
-    vertical_2 = np.linalg.norm(np.array(eye_landmarks[2]) - np.array(eye_landmarks[4]))
-    horizontal = np.linalg.norm(np.array(eye_landmarks[0]) - np.array(eye_landmarks[3]))
+    vertical_1 = np.linalg.norm(
+        np.array(eye_landmarks[1]) - np.array(eye_landmarks[5]))
+    vertical_2 = np.linalg.norm(
+        np.array(eye_landmarks[2]) - np.array(eye_landmarks[4]))
+    horizontal = np.linalg.norm(
+        np.array(eye_landmarks[0]) - np.array(eye_landmarks[3]))
     ear = (vertical_1 + vertical_2) / (2.0 * horizontal)
     return ear
 
@@ -40,6 +48,7 @@ shrink_right = False
 # Variáveis para rastrear o estado dos olhos
 left_eye_closed = False
 right_eye_closed = False
+
 
 # Função para desenhar o teclado atualizado
 def draw_keyboard(frame, left_keys, right_keys, selected_letters):
@@ -72,6 +81,7 @@ def draw_keyboard(frame, left_keys, right_keys, selected_letters):
                cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     return extended_frame
+
 
 # Função para dividir as teclas em duas partes
 def divide_keys(keys):
