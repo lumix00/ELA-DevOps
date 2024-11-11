@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 import mediapipe as mp
-import tkinter as tk
+
 
 # Valor de ajuste para visão
 blinkAdjust = 0.15
