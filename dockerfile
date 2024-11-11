@@ -9,14 +9,14 @@ RUN apt-get update && \
 # Definir o diretório de trabalho no container
 WORKDIR /app
 
-# Copiar os arquivos de requirements
-COPY requirements.txt .
+# Copiar os arquivos de requirements 
+COPY requirements.txt ./
 
 # Instalar dependências do Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo o código para o diretório /app
-COPY . .
+# Copiar o restante do código para o diretório /app
+COPY . /app
 
 # Comando para executar o script principal
 CMD ["python", "main.py"]

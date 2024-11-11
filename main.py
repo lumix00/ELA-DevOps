@@ -2,7 +2,6 @@ import numpy as np
 import cv2 as cv
 import mediapipe as mp
 
-
 # Valor de ajuste para visão
 blinkAdjust = 0.15
 flip_enabled = True
@@ -30,10 +29,10 @@ def calculate_ear(eye_landmarks):
     return ear
 
 # Inicializando variáveis
-selected_letters = []  # Para armazenar as letras selecionadas
+selected_letters = []
 left_keys = ['Q', 'W', 'E', 'R', 'T', 'A', 'S', 'D', 'F', 'G', 'Z', 'X', 'C', 'V']
 right_keys = ['Y', 'U', 'I', 'O', 'P', 'H', 'J', 'K', 'L', 'B', 'N', 'M']
-current_keys = (left_keys, right_keys)  # Teclas atuais em exibição
+current_keys = (left_keys, right_keys)
 
 shrink_left = False
 shrink_right = False
@@ -52,15 +51,15 @@ def draw_keyboard(frame, left_keys, right_keys, selected_letters):
     key_height = 50
     middle_line_x = width // 2
 
-    # Desenhar as teclas na parte esquerda (se houver teclas)
+    # Desenhar teclas à esquerda
     if left_keys:
         for i, key in enumerate(left_keys):
-            x = (i % 5) * key_width  # 5 teclas por linha
+            x = (i % 5) * key_width
             y = height + (i // 5) * key_height
             cv.rectangle(extended_frame, (x, y), (x + key_width, y + key_height), (255, 255, 255), -1)
             cv.putText(extended_frame, key, (x + 10, y + 35), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
-    # Desenhar as teclas na parte direita (se houver teclas)
+    # Desenhar teclas à direita
     if right_keys:
         for i, key in enumerate(right_keys):
             x = middle_line_x + (i % 5) * key_width
@@ -79,91 +78,92 @@ def divide_keys(keys):
     mid = len(keys) // 2
     return keys[:mid], keys[mid:]
 
-# Start video capture
-cap = cv.VideoCapture(0)
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit()
+if __name__ == "__main__":
+    # Iniciar captura de vídeo
+    cap = cv.VideoCapture(0)
+    if not cap.isOpened():
+        print("Cannot open camera")
+        exit()
 
-# Threshold for blinking detection (adjust as necessary)
-BLINK_THRESHOLD = blinkAdjust
+    # Threshold para detecção de piscada
+    BLINK_THRESHOLD = blinkAdjust
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    if flip_enabled:
-        frame = cv.flip(frame, 1)
+        if flip_enabled:
+            frame = cv.flip(frame, 1)
 
-    rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-    results = face_mesh.process(rgb_frame)
+        rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        results = face_mesh.process(rgb_frame)
 
-    if results.multi_face_landmarks:
-        for face_landmarks in results.multi_face_landmarks:
-            left_eye_landmarks = [(int(face_landmarks.landmark[i].x * frame.shape[1]), int(face_landmarks.landmark[i].y * frame.shape[0])) for i in LEFT_EYE]
-            right_eye_landmarks = [(int(face_landmarks.landmark[i].x * frame.shape[1]), int(face_landmarks.landmark[i].y * frame.shape[0])) for i in RIGHT_EYE]
+        if results.multi_face_landmarks:
+            for face_landmarks in results.multi_face_landmarks:
+                left_eye_landmarks = [(int(face_landmarks.landmark[i].x * frame.shape[1]), int(face_landmarks.landmark[i].y * frame.shape[0])) for i in LEFT_EYE]
+                right_eye_landmarks = [(int(face_landmarks.landmark[i].x * frame.shape[1]), int(face_landmarks.landmark[i].y * frame.shape[0])) for i in RIGHT_EYE]
 
-            left_ear = calculate_ear(left_eye_landmarks)
-            right_ear = calculate_ear(right_eye_landmarks)
+                left_ear = calculate_ear(left_eye_landmarks)
+                right_ear = calculate_ear(right_eye_landmarks)
 
-            # Detectar piscada do olho esquerdo
-            if left_ear < BLINK_THRESHOLD and not left_eye_closed:
-                if current_keys[1]:  # Se ainda há teclas à direita
-                    current_keys = (current_keys[0], [])  # Apaga as teclas do lado direito
-                    shrink_right = True
-                left_eye_closed = True  # Marca que o olho está fechado
+                # Detectar piscada do olho esquerdo
+                if left_ear < BLINK_THRESHOLD and not left_eye_closed:
+                    if current_keys[1]:
+                        current_keys = (current_keys[0], [])
+                        shrink_right = True
+                    left_eye_closed = True
 
-            # Detectar piscada do olho direito
-            elif right_ear < BLINK_THRESHOLD and not right_eye_closed:
-                if current_keys[0]:  # Se ainda há teclas à esquerda
-                    current_keys = ([], current_keys[1])  # Apaga as teclas do lado esquerdo
-                    shrink_left = True
-                right_eye_closed = True  # Marca que o olho está fechado
+                # Detectar piscada do olho direito
+                elif right_ear < BLINK_THRESHOLD and not right_eye_closed:
+                    if current_keys[0]:
+                        current_keys = ([], current_keys[1])
+                        shrink_left = True
+                    right_eye_closed = True
 
-            # Verificar se ambos os olhos estão piscando para adicionar um espaço
-            if left_ear < BLINK_THRESHOLD and right_ear < BLINK_THRESHOLD:
-                if len(selected_letters) == 0 or selected_letters[-1] != ' ':  # Evitar espaços consecutivos
-                    selected_letters.append(' ')  # Adiciona um espaço
-                left_eye_closed = True
-                right_eye_closed = True
+                # Verificar se ambos os olhos estão piscando para adicionar um espaço
+                if left_ear < BLINK_THRESHOLD and right_ear < BLINK_THRESHOLD:
+                    if len(selected_letters) == 0 or selected_letters[-1] != ' ':
+                        selected_letters.append(' ')
+                    left_eye_closed = True
+                    right_eye_closed = True
 
-            # Verificar se o olho esquerdo foi aberto novamente
-            if left_ear >= BLINK_THRESHOLD:
-                left_eye_closed = False  # Marca que o olho foi aberto
+                # Verificar se o olho esquerdo foi aberto novamente
+                if left_ear >= BLINK_THRESHOLD:
+                    left_eye_closed = False
 
-            # Verificar se o olho direito foi aberto novamente
-            if right_ear >= BLINK_THRESHOLD:
-                right_eye_closed = False  # Marca que o olho foi aberto
+                # Verificar se o olho direito foi aberto novamente
+                if right_ear >= BLINK_THRESHOLD:
+                    right_eye_closed = False
 
-    # Após a remoção das teclas de um lado, dividir as teclas restantes
-    if shrink_right and current_keys[0]:  # Se o lado direito foi removido
-        shrink_right = False
-        current_keys = divide_keys(current_keys[0])  # Divide o lado esquerdo em dois
+        # Após a remoção das teclas de um lado, dividir as teclas restantes
+        if shrink_right and current_keys[0]:
+            shrink_right = False
+            current_keys = divide_keys(current_keys[0])
 
-    elif shrink_left and current_keys[1]:  # Se o lado esquerdo foi removido
-        shrink_left = False
-        current_keys = divide_keys(current_keys[1])  # Divide o lado direito em dois
+        elif shrink_left and current_keys[1]:
+            shrink_left = False
+            current_keys = divide_keys(current_keys[1])
 
-    # Se restar apenas uma tecla em qualquer lado, adicionar ao array
-    if len(current_keys[0]) == 1 and len(current_keys[1]) == 0:
-        selected_letters.append(current_keys[0].pop())
-        current_keys = (left_keys, right_keys)  # Reinicia o teclado
-    elif len(current_keys[1]) == 1 and len(current_keys[0]) == 0:
-        selected_letters.append(current_keys[1].pop())
-        current_keys = (left_keys, right_keys)  # Reinicia o teclado
+        # Se restar apenas uma tecla em qualquer lado, adicionar ao array
+        if len(current_keys[0]) == 1 and len(current_keys[1]) == 0:
+            selected_letters.append(current_keys[0].pop())
+            current_keys = (left_keys, right_keys)
+        elif len(current_keys[1]) == 1 and len(current_keys[0]) == 0:
+            selected_letters.append(current_keys[1].pop())
+            current_keys = (left_keys, right_keys)
 
-    # Desenhar o teclado e exibir
-    frame_with_keyboard = draw_keyboard(frame, current_keys[0], current_keys[1], selected_letters)
-    cv.imshow('MediaPipe Face Mesh - Eye Blink Detection with Keyboard', frame_with_keyboard)
+        # Desenhar o teclado e exibir
+        frame_with_keyboard = draw_keyboard(frame, current_keys[0], current_keys[1], selected_letters)
+        cv.imshow('MediaPipe Face Mesh - Eye Blink Detection with Keyboard', frame_with_keyboard)
 
-    # Controles de teclado
-    key = cv.waitKey(1)
-    if key == ord('f'):
-        flip_enabled = not flip_enabled
-    elif key == ord('q'):
-        break
+        # Controles de teclado
+        key = cv.waitKey(1)
+        if key == ord('f'):
+            flip_enabled = not flip_enabled
+        elif key == ord('q'):
+            break
 
-# Limpar e fechar janelas
-cap.release()
-cv.destroyAllWindows()
+    # Limpar e fechar janelas
+    cap.release()
+    cv.destroyAllWindows()
