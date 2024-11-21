@@ -1,0 +1,32 @@
+name: Azure Deploy
+
+on:
+  push:
+    branches:
+      - main  # Ou qualquer outra branch que você deseja que dispare o deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Azure CLI
+      uses: azure/CLI@v1
+      with:
+        azcliversion: 'latest'
+        inlineScript: |
+          # Fazendo o login no Azure com Service Principal
+          echo "Logging into Azure..."
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          
+    - name: Deploy to Azure App Service
+      run: |
+        # Faça o build da sua aplicação (ajuste conforme o seu projeto)
+        npm install
+        npm run build
+
+        # Conecte e faça o deploy no Azure
+        az webapp up --name ${{ secrets.AZURE_APP_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} --location "Central US"
