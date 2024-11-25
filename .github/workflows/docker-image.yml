@@ -44,3 +44,23 @@ jobs:
       run: |
         pip install flake8
         flake8 . --exit-zero
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Build Docker image
+      run: |
+        docker build -t lumix00/my-image:latest .
+
+    - name: Login to DockerHub
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        echo $DOCKERHUB_TOKEN | docker login -u lumix00 --password-stdin
+
+    - name: Push Docker image to DockerHub
+      run: |
+        docker push lumix00/my-image:latest
