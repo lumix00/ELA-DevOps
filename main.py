@@ -3,7 +3,7 @@ import cv2 as cv
 import mediapipe as mp
 
 # Valor de ajuste para visão
-blinkAdjust = 0.15
+blinkAdjust = 0.10
 flip_enabled = True
 
 # Contar uma piscada por vez
